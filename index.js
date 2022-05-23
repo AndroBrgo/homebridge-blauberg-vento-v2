@@ -215,7 +215,8 @@ BlaubergVento.prototype = {
                 if(that.statusCache && that.statusCache.length){
                     that.statusCache[1] = powerState;
                 }
-            });
+            }
+        });
     },
 
     addFakeGatoHistoryEntry() {
