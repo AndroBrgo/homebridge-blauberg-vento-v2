@@ -32,7 +32,7 @@ module.exports = function (homebridge) {
     homebridge.registerAccessory('homebridge-blauberg-vento-v2', 'BlaubergVentoV2', BlaubergVentoV2);
 };
 
-function BlaubergVento(log, config) {
+function BlaubergVentoV2(log, config) {
     this.log = log;
 
     this.name            = config.name || 'Blauberg Vento V2';
@@ -59,7 +59,7 @@ function BlaubergVento(log, config) {
 
 }
 
-BlaubergVento.prototype = {
+BlaubergVentoV2.prototype = {
 
     udpRequest: function(host, port, payloadMessage, callback, callbackResponse) {
         if(!callback){callback = function(){};}
