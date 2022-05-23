@@ -202,7 +202,7 @@ BlaubergVento.prototype = {
     setPowerState: function(targetService, powerState, callback, context){
         var that = this;
        
-        var payload = Buffer.from([0x02, 0x01, powerState.buffer);
+        var payload = Buffer.from([0x02, 0x01, powerState.buffer]);
 
         this.udpRequest(this.host, this.port, payload, function (error) {
             if (error) {
@@ -275,7 +275,7 @@ BlaubergVento.prototype = {
             var comand = '02';
         }
 
-        var payload = Buffer.from([0x02, 0xb7, fanState.buffer);
+        var payload = Buffer.from([0x02, 0xb7, fanState.buffer]);
 
         this.udpRequest(this.host, this.port, payload, function(error) {
             if (error) {
