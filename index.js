@@ -148,7 +148,7 @@ BlaubergVentoV2.prototype = {
                     case(183): //0xB7
                         //console.log("Bathroom/mode = ", databuf[i+1])
                         that.statusCache[183] = databuf[i+1];
-                                                                        break;
+                        break;
                     default:
                         that.log.debug("unknown ID");
                         that.log.debug(message, rinfo)
@@ -217,24 +217,76 @@ BlaubergVentoV2.prototype = {
             callback(true);
         }
     },
-
+    
     setPowerState: function(targetService, powerState, callback, context){
         var that = this;
-       
-        var payload = Buffer.from([0x02, 0x01, powerState.buffer]);
+     
+        var payload = Buffer.from([0x01, 0x01, 0x02, 0x25, 0x88, 0xB7]);
 
         this.udpRequest(this.host, this.port, payload, function (error) {
-            if (error) {
-                that.log.error('setPowerState failed: ' + error.message);
-                that.log('response: ' + response + '\nbody: ' + responseBody);
-            
-                callback(error);
-            } else {
-                that.log.info('setPowerState ' + powerState);
-                if(that.statusCache && that.statusCache.length){
-                    that.statusCache[1] = powerState;
+                if(error) {
+                        that.log.error('getPowerState failed: ' + error.message);
                 }
-            }
+        }, function (message, rinfo) {
+                var datalen = rinfo.size - 24 - message.readInt8(20);
+                var databuf = message.subarray(20+message.readInt8(20)+2, -2);
+                //that.log.info('databuf = ' + JSON.stringify(databuf));
+                that.statusCache = [];
+                for (let i=0; i < datalen; i+=2){
+                    switch(databuf[i]){
+                        case(1):
+                            //console.log("Bathroom/status =  ", databuf[i+1]);
+                            that.statusCache[1] = databuf[i+1];
+                            break;
+                        case(2):
+                            //console.log("Bathroom/fan_level = ", databuf[i+1]);
+                            that.statusCache[2] = databuf[i+1];
+                            break;
+                        case(37): //0x25
+                            //console.log("Bathroom/humidity = ", databuf[i+1]);
+                            that.statusCache[37] = databuf[i+1];
+                            break;
+                        case(136): //0x88
+                            //console.log("Bathroom/filter = ", databuf[i+1]);
+                            that.statusCache[136] = databuf[i+1];
+                            break;
+                        case(183): //0xB7
+                            //console.log("Bathroom/mode = ", databuf[i+1])
+                            that.statusCache[183] = databuf[i+1];
+                            break;
+                        default:
+                            that.log.debug("unknown ID");
+                            that.log.debug(message, rinfo)
+                    }
+                }
+             
+                var currentActiveStatus = that.statusCache[1];
+
+                if(powerState == currentActiveStatus){
+                        that.log.info('not need setPowerState ' + powerState);
+                        callback();
+                }else{
+                        if(1 == powerState){
+                            var comand = '01';
+                        }else if(0 == powerState){
+                            var comand = '00';
+                        }
+                        
+                        var payload = Buffer.from([0x02, 0x01, comand.buffer]);
+
+                        that.udpRequest(that.host, that.port, payload, function(error){
+                                if (error) {
+                                        that.log.error('setPowerState failed: ' + error.message);            
+                                        callback(error);
+                                } else {
+                                        that.log.info('setPowerState ' + powerState);
+                                        if(that.statusCache && that.statusCache.length){
+                                                that.statusCache[7] = powerState; 
+                                        }
+                                }
+                                callback();
+                        });
+                }
         });
     },
 
@@ -295,7 +347,7 @@ BlaubergVentoV2.prototype = {
             var comand = '02';
         }
 
-        var payload = Buffer.from([0x02, 0xb7, fanState.buffer]);
+        var payload = Buffer.from([0x02, 0xb7, comand.buffer]);
 
         this.udpRequest(this.host, this.port, payload, function(error) {
             if (error) {
