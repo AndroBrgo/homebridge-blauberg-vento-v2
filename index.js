@@ -122,7 +122,7 @@ BlaubergVentoV2.prototype = {
             if(error) {
                 that.log.error('_getStatusData failed: ' + error.message);
             }
-        }, function (msg, rinfo) {
+        }, function (message, rinfo) {
             datalen = rinfo.size - 24 - message.readInt8(20);
             databuf = message.subarray(20+message.readInt8(20)+2, -2);
             for (let i=0; i < datalen; i+=2){
