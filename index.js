@@ -125,9 +125,9 @@ BlaubergVentoV2.prototype = {
         }, function (message, rinfo) {
             var datalen = rinfo.size - 24 - message.readInt8(20);
             var databuf = message.subarray(20+message.readInt8(20)+2, -2);
-            that.log.info('databuf = ' + JSON.stringify(databuf));
+            //that.log.info('databuf = ' + JSON.stringify(databuf));
+            that.statusCache = [];
             for (let i=0; i < datalen; i+=2){
-                that.statusCache = [];
                 switch(databuf[i]){
                     case(1):
                         //console.log("Bathroom/status =  ", databuf[i+1]);
@@ -154,6 +154,7 @@ BlaubergVentoV2.prototype = {
                         that.log.debug(message, rinfo)
                 }
             }
+            that.log.info('statusCache = ' + JSON.stringify(that.statusCache));
             
             if(that.statusCache){
                 that.addFakeGatoHistoryEntry(that.statusCache[37]);
