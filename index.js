@@ -80,6 +80,7 @@ BlaubergVentoV2.prototype = {
         var getbuff = Buffer.concat(list2);
         
         var message = getbuff;
+        that.log.info('message = ' + JSON.stringify(message));
         
         function calcchecksum(intbuff){
             let checksum = 0;
