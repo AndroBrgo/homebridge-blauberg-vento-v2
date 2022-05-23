@@ -267,14 +267,14 @@ BlaubergVentoV2.prototype = {
                         that.log.info('not need setPowerState ' + powerState);
                         callback();
                 }else{
-                        if(0 == powerState){
+                        if(1 == powerState){
                             var comand = '01';
-                        }else if(1 == powerState){
+                        }else if(0 == powerState){
                             var comand = '00';
                         }
                         
                         var payload = Buffer.from([0x02, 0x01, comand.buffer]);
-
+                        that.log.info('setpower payload = ' + JSON.stringify(payload));
                         that.udpRequest(that.host, that.port, payload, function(error){
                                 if (error) {
                                         that.log.error('setPowerState failed: ' + error.message);            
