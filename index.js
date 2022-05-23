@@ -267,9 +267,9 @@ BlaubergVentoV2.prototype = {
                         that.log.info('not need setPowerState ' + powerState);
                         callback();
                 }else{
-                        if(1 == powerState){
+                        if(0 == powerState){
                             var comand = '01';
-                        }else if(0 == powerState){
+                        }else if(1 == powerState){
                             var comand = '00';
                         }
                         
