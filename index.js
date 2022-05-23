@@ -281,7 +281,7 @@ BlaubergVentoV2.prototype = {
                                 } else {
                                         that.log.info('setPowerState ' + powerState);
                                         if(that.statusCache && that.statusCache.length){
-                                                that.statusCache[7] = powerState; 
+                                                that.statusCache[1] = powerState; 
                                         }
                                 }
                                 callback();
