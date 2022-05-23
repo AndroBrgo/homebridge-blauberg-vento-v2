@@ -154,7 +154,7 @@ BlaubergVentoV2.prototype = {
                         that.log.debug(message, rinfo)
                 }
             }
-            that.log.info('statusCache = ' + JSON.stringify(that.statusCache));
+            //that.log.info('statusCache = ' + JSON.stringify(that.statusCache));
             
             if(that.statusCache){
                 that.addFakeGatoHistoryEntry(that.statusCache[37]);
@@ -195,12 +195,12 @@ BlaubergVentoV2.prototype = {
 
         this.udpRequest(this.host, this.port, payload, function(error) {
             if (error) {
-                this.log.error('setCustomSpeed failed: ' + error.message);
-                this.log('response: ' + response + '\nbody: ' + responseBody);
+                that.log.error('setCustomSpeed failed: ' + error.message);
+                that.log('response: ' + response + '\nbody: ' + responseBody);
             
                 callback(error);
             } else {
-                this.log.info('set speed ' + speed);
+                that.log.info('set speed ' + speed);
                 if(that.statusCache && that.statusCache.length){
                     that.statusCache[2] = Math.round(3/100*speed);
                 }
@@ -225,12 +225,12 @@ BlaubergVentoV2.prototype = {
 
         this.udpRequest(this.host, this.port, payload, function (error) {
             if (error) {
-                this.log.error('setPowerState failed: ' + error.message);
-                this.log('response: ' + response + '\nbody: ' + responseBody);
+                that.log.error('setPowerState failed: ' + error.message);
+                that.log('response: ' + response + '\nbody: ' + responseBody);
             
                 callback(error);
             } else {
-                this.log.info('setPowerState ' + powerState);
+                that.log.info('setPowerState ' + powerState);
                 if(that.statusCache && that.statusCache.length){
                     that.statusCache[1] = powerState;
                 }
@@ -299,10 +299,10 @@ BlaubergVentoV2.prototype = {
 
         this.udpRequest(this.host, this.port, payload, function(error) {
             if (error) {
-                this.log.error('setFanState failed: ' + error.message);            
+                that.log.error('setFanState failed: ' + error.message);            
                 callback(error);
             } else {
-                this.log.info('setFanState ' + fanState);
+                that.log.info('setFanState ' + fanState);
                 if(that.statusCache && that.statusCache.length){
                     that.statusCache[183] = fanState;
                 }
