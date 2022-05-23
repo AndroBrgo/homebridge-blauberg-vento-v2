@@ -80,6 +80,23 @@ BlaubergVentoV2.prototype = {
         var getbuff = Buffer.concat(list2);
         
         var message = getbuff;
+        
+        function calcchecksum(intbuff){
+            let checksum = 0;
+            for (let i = 2; i < intbuff.length; i++) {
+                    // console.log(newbuff[i]);
+                    checksum+=intbuff[i];
+            }
+            //console.log("checksum = " , checksum);
+            return checksum;
+        }
+        
+        function checksum2buffer(checksum){
+            const arr = new Uint8Array(2);
+            arr[0] = checksum%256;
+            arr[1] = checksum/256;
+            return Buffer.from(arr.buffer);
+        }
 
         setTimeout(function() { 
             client.send(message, 0, message.length, port, host, function(err, bytes) {
