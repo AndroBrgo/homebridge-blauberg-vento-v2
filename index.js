@@ -126,7 +126,7 @@ BlaubergVentoV2.prototype = {
             var datalen = rinfo.size - 24 - message.readInt8(20);
             var databuf = message.subarray(20+message.readInt8(20)+2, -2);
             for (let i=0; i < datalen; i+=2){
-                that.statusCache[];
+                that.statusCache = [];
                 switch(databuf[i]){
                     case(1):
                         //console.log("Bathroom/status =  ", databuf[i+1]);
