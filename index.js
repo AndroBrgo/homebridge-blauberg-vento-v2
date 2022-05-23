@@ -191,8 +191,14 @@ BlaubergVentoV2.prototype = {
     setCustomSpeed: function(targetService, speed, callback, context) {      
         var that = this;
         
-        var adjustedSpeed = (Math.round(3/100*speed).toString(16));
-        var payload = Buffer.from([0x02, 0x02, adjustedSpeed.buffer]);
+        var adjustedSpeed = (Math.ceil(3/100*speed).toString(16));
+        if(1 == adjustedSpeed){
+            var payload = Buffer.from([0x02, 0x02, 0x01]);
+        }else if(2 == adjustedSpeed){
+            var payload = Buffer.from([0x02, 0x02, 0x02]);
+        }else if(3 == adjustedSpeed){
+            var payload = Buffer.from([0x02, 0x02, 0x03]);
+        }
 
         this.udpRequest(this.host, this.port, payload, function(error) {
             if (error) {
@@ -203,7 +209,7 @@ BlaubergVentoV2.prototype = {
             } else {
                 that.log.info('set speed ' + speed);
                 if(that.statusCache && that.statusCache.length){
-                    that.statusCache[2] = Math.round(3/100*speed);
+                    that.statusCache[2] = adjustedSpeed;
                 }
             }
             callback();
@@ -340,14 +346,12 @@ BlaubergVentoV2.prototype = {
         var that = this;
 
         if(1 == fanState){
-            var comand = '01';
+            var payload = Buffer.from([0x02, 0xb7, 0x01]);
         }else if(0 == fanState){
-            var comand = '00';
+            var payload = Buffer.from([0x02, 0xb7, 0x00]);
         }else if(2 == fanState){
-            var comand = '02';
+            var payload = Buffer.from([0x02, 0xb7, 0x02]);
         }
-
-        var payload = Buffer.from([0x02, 0xb7, comand.buffer]);
 
         this.udpRequest(this.host, this.port, payload, function(error) {
             if (error) {
