@@ -268,12 +268,11 @@ BlaubergVentoV2.prototype = {
                         callback();
                 }else{
                         if(1 == powerState){
-                            var comand = '01';
+                            var payload = Buffer.from([0x02, 0x01, 0x01]);
                         }else if(0 == powerState){
-                            var comand = '00';
+                            var payload = Buffer.from([0x02, 0x01, 0x00]);
                         }
                         
-                        var payload = Buffer.from([0x02, 0x01, comand.buffer]);
                         that.log.info('setpower payload = ' + JSON.stringify(payload));
                         that.udpRequest(that.host, that.port, payload, function(error){
                                 if (error) {
