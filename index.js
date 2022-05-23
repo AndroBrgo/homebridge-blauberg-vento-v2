@@ -1,4 +1,3 @@
-//fc
 'use strict';
 
 var Service;
@@ -13,7 +12,7 @@ const { version } = require("./package.json");
 
 // EXAMPLE CONFIG
 // {
-//     "accessory": "BlaubergVento",
+//     "accessory": "BlaubergVentoV2",
 //     "name": "Vento Bedroom",
 //     "host": "10.0.0.00",
 //     "serialNumber": "000100101234430F"
@@ -30,19 +29,30 @@ module.exports = function (homebridge) {
     UUIDGen = homebridge.hap.uuid;
     FakeGatoHistoryService = require("fakegato-history")(homebridge);
     homebridgeAPI = homebridge;
-    homebridge.registerAccessory('homebridge-blauberg-vento', 'BlaubergVento', BlaubergVento);
+    homebridge.registerAccessory('homebridge-blauberg-vento-v2', 'BlaubergVentoV2', BlaubergVentoV2);
 };
 
 function BlaubergVento(log, config) {
     this.log = log;
 
-    this.name            = config.name || 'Blauberg Vento';
+    this.name            = config.name || 'Blauberg Vento V2';
     this.displayName     = this.name;
     this.humidityName    = config.humidityName || this.name + ' Humidity';
     this.host            = config.host;
     this.port            = config.port || 4000;
     this.serialNumber    = config.serialNumber || '';
     this.updateTimeout   = config.updateTimeout || 30000;
+    this.password        = config.password || '1111';
+    
+    this.header  = Buffer.from(
+            [ 0xFD, 0xFD,   // Beginn des Pakets
+             0x02,          // Protokolltyp
+             0x10,          // ID Blockgroesse
+             ]
+            );
+    this.IDbuf = Buffer.from(this.serialNumber);
+    this.PWDsizebuf = Buffer.from([0x04]);
+    this.PWDbuf = Buffer.from(this.password);
 
     this.isFakeGatoEnabled   = config.isFakeGatoEnabled || false;
     this.fakeGatoStoragePath = config.fakeGatoStoragePath || false;
@@ -57,7 +67,19 @@ BlaubergVento.prototype = {
 
         var client = dgram.createSocket('udp4');
         var delayTime = Math.floor(Math.random() * 1500) + 1;
-        var message = new Buffer(payloadMessage, 'hex');
+        
+        //payloadMessage format = Buffer.from([0x01, 0x01, 0x02, 0x25, 0x88, 0xB7])
+        var Databuf = payloadMessage;
+        
+        var list = [this.header, this.IDbuf, this.PWDsizebuf, this.PWDbuf, Databuf];
+        var intbuff = Buffer.concat(list);
+        
+        //calculate checksum
+        let checksum = calcchecksum(intbuff);
+        var list2 = [intbuff,checksum2buffer(checksum)];
+        var getbuff = Buffer.concat(list2);
+        
+        var message = getbuff;
 
         setTimeout(function() { 
             client.send(message, 0, message.length, port, host, function(err, bytes) {
@@ -75,23 +97,48 @@ BlaubergVento.prototype = {
 
     },
 
-
-    _parseResponseBuffer: function(data){
-        return JSON.parse(JSON.stringify(data)).data;
-    },
-
     _getStatusData: function(){
         var that = this;
-        var payload = '6D6F62696C65' + '01' + '01' + '0D0A';
+        var payload = Buffer.from([0x01, 0x01, 0x02, 0x25, 0x88, 0xB7]);
         
         this.udpRequest(this.host, this.port, payload, function (error) {
             if(error) {
                 that.log.error('_getStatusData failed: ' + error.message);
             }
         }, function (msg, rinfo) {
-            that.statusCache = that._parseResponseBuffer(msg);
+            datalen = rinfo.size - 24 - message.readInt8(20);
+            databuf = message.subarray(20+message.readInt8(20)+2, -2);
+            for (let i=0; i < datalen; i+=2){
+                console.log("data = ", databuf[i]);
+                switch(databuf[i]){
+                    case(1):
+                        //console.log("Bathroom/status =  ", databuf[i+1]);
+                        that.statusCache[1] = databuf[i+1];
+                        break;
+                    case(2):
+                        //console.log("Bathroom/fan_level = ", databuf[i+1]);
+                        that.statusCache[2] = databuf[i+1];
+                        break;
+                    case(37): //0x25
+                        //console.log("Bathroom/humidity = ", databuf[i+1]);
+                        that.statusCache[37] = databuf[i+1];
+                        break;
+                    case(136): //0x88
+                        //console.log("Bathroom/filter = ", databuf[i+1]);
+                        that.statusCache[136] = databuf[i+1];
+                        break;
+                    case(183): //0xB7
+                        //console.log("Bathroom/mode = ", databuf[i+1])
+                        that.statusCache[183] = databuf[i+1];
+                                                                        break;
+                    default:
+                        that.log.debug("unknown ID");
+                        that.log.debug(message, rinfo)
+                }
+            }
+            
             if(that.statusCache){
-                that.addFakeGatoHistoryEntry(that.statusCache[25]);
+                that.addFakeGatoHistoryEntry(that.statusCache[37]);
             }
 
             that.log.debug('_getStatusData success');
@@ -103,7 +150,7 @@ BlaubergVento.prototype = {
         var that = this;
 
         if(that.statusCache && that.statusCache.length){
-            callback(null, that.statusCache[31]);
+            callback(null, that.statusCache[136]);
         }else{
             callback(true);
         }
@@ -114,7 +161,7 @@ BlaubergVento.prototype = {
         var that = this;
 
         if(that.statusCache && that.statusCache.length){
-            callback(null, Math.round(that.statusCache[21]/255*100));
+            callback(null, Math.round(that.statusCache[2]*20));
         }else{
             callback(true);
         }
@@ -123,7 +170,9 @@ BlaubergVento.prototype = {
 
     setCustomSpeed: function(targetService, speed, callback, context) {      
         var that = this;
-        var payload = '6D6F62696C65'+'05'+(Math.round(255/100*speed).toString(16))+'0D0A'
+        
+        var adjustedSpeed = (Math.round(3/100*speed).toString(16));
+        var payload = Buffer.from([0x02, 0x02, adjustedSpeed.buffer]);
 
         this.udpRequest(this.host, this.port, payload, function(error) {
             if (error) {
@@ -134,7 +183,7 @@ BlaubergVento.prototype = {
             } else {
                 this.log.info('set speed ' + speed);
                 if(that.statusCache && that.statusCache.length){
-                    that.statusCache[21] = Math.round(255/100*speed);
+                    that.statusCache[2] = Math.round(3/100*speed);
                 }
             }
             callback();
@@ -144,7 +193,7 @@ BlaubergVento.prototype = {
     getPowerState: function (targetService, callback, context) {
         var that = this;
         if(that.statusCache && that.statusCache.length){
-            callback(null, that.statusCache[7]);
+            callback(null, that.statusCache[1]);
         }else{
             callback(true);
         }
@@ -153,38 +202,20 @@ BlaubergVento.prototype = {
     setPowerState: function(targetService, powerState, callback, context){
         var that = this;
        
-        var payload = '6D6F62696C65' + '01' + '01' + '0D0A';
+        var payload = Buffer.from([0x02, 0x01, powerState.buffer);
 
         this.udpRequest(this.host, this.port, payload, function (error) {
-            if(error) {
-                that.log.error('getPowerState failed: ' + error.message);
-            }
-        }, function (msg, rinfo) {
-            msg = that._parseResponseBuffer(msg);
-            that.statusCache = msg;
-           
-            var currentActiveStatus = msg[7];
-
-            if(powerState == currentActiveStatus){
-                that.log.info('not need setPowerState ' + powerState);
-                callback();
-            }else{
-                var payload = '6D6F62696C65'+'03'+'00'+'0D0A';
-
-                that.udpRequest(that.host, that.port, payload, function(error){
-                    if (error) {
-                        that.log.error('setPowerState failed: ' + error.message);            
-                        callback(error);
-                    } else {
-                        that.log.info('setPowerState ' + powerState);
-                        if(that.statusCache && that.statusCache.length){
-                            that.statusCache[7] = powerState; 
-                        }
-                    }
-                    callback();
-                });
-            }
-        });
+            if (error) {
+                this.log.error('setPowerState failed: ' + error.message);
+                this.log('response: ' + response + '\nbody: ' + responseBody);
+            
+                callback(error);
+            } else {
+                this.log.info('setPowerState ' + powerState);
+                if(that.statusCache && that.statusCache.length){
+                    that.statusCache[1] = powerState;
+                }
+            });
     },
 
     addFakeGatoHistoryEntry() {
@@ -218,7 +249,7 @@ BlaubergVento.prototype = {
     getHumidity: function(targetService, callback, context){
         var that = this;
         if(that.statusCache && that.statusCache.length){
-            callback(null,  that.statusCache[25]);
+            callback(null,  that.statusCache[37]);
         }else{
             callback(true);
         }
@@ -227,7 +258,7 @@ BlaubergVento.prototype = {
     getFanState: function (targetService, callback, context) {
         var that = this;
         if(that.statusCache && that.statusCache.length){
-            callback(null,  that.statusCache[23]);
+            callback(null,  that.statusCache[183]);
         }else{
             callback(true);
         }
@@ -240,9 +271,11 @@ BlaubergVento.prototype = {
             var comand = '01';
         }else if(0 == fanState){
             var comand = '00';
+        }else if(2 == fanState){
+            var comand = '02';
         }
 
-        var payload = '6D6F62696C65'+'06'+comand+'0D0A';
+        var payload = Buffer.from([0x02, 0xb7, fanState.buffer);
 
         this.udpRequest(this.host, this.port, payload, function(error) {
             if (error) {
@@ -251,7 +284,7 @@ BlaubergVento.prototype = {
             } else {
                 this.log.info('setFanState ' + fanState);
                 if(that.statusCache && that.statusCache.length){
-                    that.statusCache[23] = fanState;
+                    that.statusCache[183] = fanState;
                 }
             }
             callback();
