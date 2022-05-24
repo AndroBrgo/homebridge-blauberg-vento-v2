@@ -350,11 +350,11 @@ BlaubergVentoV2.prototype = {
     setFanState: function(targetService, fanState, callback, context) { 
         var that = this;
         
-        //1 = heat recovery, 0 = air supply
+        //1 = heat recovery, 0 = ventilation (air supply or air extract)
         if(1 == fanState){
             var payload = Buffer.from([0x02, 0xb7, 0x01]);
         }else if(0 == fanState){
-            var payload = Buffer.from([0x02, 0xb7, 0x02]);
+            var payload = Buffer.from([0x02, 0xb7, 0x00]);
         }
 
         this.udpRequest(this.host, this.port, payload, function(error) {
