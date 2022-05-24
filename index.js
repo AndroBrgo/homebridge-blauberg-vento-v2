@@ -336,7 +336,12 @@ BlaubergVentoV2.prototype = {
     getFanState: function (targetService, callback, context) {
         var that = this;
         if(that.statusCache && that.statusCache.length){
-            callback(null,  that.statusCache[183]);
+            var mode = that.statusCache[183]; //0 = ventilation, 1 = heat recovery, 2 = air supply
+            var simpleFanState = 1;
+            if (mode == 0 || mode == 2) {
+                simpleFanState = 0;
+            }
+            callback(null,  simpleFanState);
         }else{
             callback(true);
         }
@@ -344,12 +349,11 @@ BlaubergVentoV2.prototype = {
 
     setFanState: function(targetService, fanState, callback, context) { 
         var that = this;
-
+        
+        //1 = heat recovery, 0 = air supply
         if(1 == fanState){
             var payload = Buffer.from([0x02, 0xb7, 0x01]);
         }else if(0 == fanState){
-            var payload = Buffer.from([0x02, 0xb7, 0x00]);
-        }else if(2 == fanState){
             var payload = Buffer.from([0x02, 0xb7, 0x02]);
         }
 
@@ -403,7 +407,7 @@ BlaubergVentoV2.prototype = {
             .on('get', this.getFilterStatus.bind(this, fanService))
         ;
         fanService
-            .getCharacteristic(Characteristic.SwingMode)
+            .getCharacteristic(Characteristic.RotationDirection)
             .on('get', this.getFanState.bind(this, fanService))
             .on('set', this.setFanState.bind(this, fanService))
         ;
